@@ -1,6 +1,6 @@
 # GameWarmup — experimental game-file warmup for Windows
 
-**English** · [Русская версия / Russian README](README.ru.md)
+**English** · [Русская версия / Russian README](README.md)
 
 GameWarmup is a free, open-source **C# / .NET 10 / WPF** utility for Windows 10/11. It reads files from a selected installed game **before you launch it**, giving Windows a chance to keep recently read data in its file cache. It is designed primarily for games installed on **mechanical HDDs** where first-time file access may contribute to stuttering.
 
