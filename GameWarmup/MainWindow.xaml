@@ -1,0 +1,112 @@
+<Window x:Class="GameWarmup.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="GameWarmup Alpha 0.4" Icon="Assets/GameWarmup.ico"
+    Width="1150" Height="825" MinWidth="920" MinHeight="685"
+    Background="{StaticResource BackgroundBrush}" Foreground="#F1F5FF"
+    FontFamily="Segoe UI" WindowStartupLocation="CenterScreen">
+  <Grid Margin="26">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <Grid Margin="0,0,0,20">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel Orientation="Horizontal">
+        <Image Source="Assets/GameWarmup.ico" Width="54" Height="54" Margin="0,0,13,0"/>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="GameWarmup" FontSize="30" FontWeight="Bold"/>
+          <TextBlock x:Name="TaglineText" Text="HDD FILE WARMUP / ALPHA 0.4" Foreground="#8CC9FC" FontSize="12"/>
+        </StackPanel>
+      </StackPanel>
+      <StackPanel Grid.Column="1" VerticalAlignment="Center" MinWidth="128">
+        <TextBlock x:Name="LanguageLabel" Text="Язык / Language" Foreground="#8CC9FC" Margin="0,0,0,4"/>
+        <ComboBox x:Name="LanguageCombo" SelectedIndex="0" Margin="0" MinWidth="127">
+          <ComboBoxItem Content="Русский" Tag="ru"/>
+          <ComboBoxItem Content="English" Tag="en"/>
+        </ComboBox>
+      </StackPanel>
+    </Grid>
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="4*"/><ColumnDefinition Width="6*"/></Grid.ColumnDefinitions>
+      <Border Background="{StaticResource PanelBrush}" CornerRadius="15" Padding="20" Margin="0,0,10,0">
+        <DockPanel LastChildFill="True">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock x:Name="LibraryTitle" Text="Библиотека игр" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12"/>
+            <TextBlock x:Name="GamePathLabel" Text="Папка игры (можно вставить путь)" Foreground="#D5E3F9" Margin="0,0,0,6"/>
+            <TextBox x:Name="GamePathInput" Margin="0,0,0,9" ToolTip="Пример: D:\SteamLibrary\steamapps\common\Rust"/>
+            <WrapPanel Margin="0,0,0,8">
+              <Button x:Name="AddPathButton" Content="+ Добавить" Click="AddPath_Click"/>
+              <Button x:Name="BrowseButton" Content="Выбрать папку" Click="AddGame_Click" Background="#405477"/>
+            </WrapPanel>
+            <Button x:Name="SteamButton" Content="Найти игры Steam" Click="SteamScan_Click" Background="#276A71" Margin="0,0,0,14"/>
+            <TextBlock x:Name="GamesLabel" Text="ИГРЫ" FontSize="11" FontWeight="Bold" Foreground="#87BFF5" Margin="0,0,0,6"/>
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <TextBlock x:Name="SelectedFolderLabel" Text="ВЫБРАННАЯ ПАПКА" FontSize="11" FontWeight="Bold" Foreground="#87BFF5" Margin="0,0,0,5"/>
+            <TextBlock x:Name="SelectedPath" Text="Выберите игру" Foreground="#D6E4FC" TextWrapping="Wrap" Margin="0,0,0,12"/>
+            <Button x:Name="RemoveButton" Content="Удалить из библиотеки" Click="RemoveGame_Click" Background="#4A5570" Margin="0"/>
+          </StackPanel>
+          <ListBox x:Name="GamesList" SelectionChanged="GamesList_SelectionChanged"
+              Background="#101A2D" Foreground="White" BorderThickness="0" FontSize="14" Padding="7"/>
+        </DockPanel>
+      </Border>
+      <Border Grid.Column="1" Background="{StaticResource PanelBrush}" CornerRadius="15" Padding="22" Margin="10,0,0,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <TextBlock x:Name="WarmupTitle" Text="Прогрев файлов" FontSize="21" FontWeight="SemiBold" Margin="0,0,0,13"/>
+            <TextBlock x:Name="ModeLabel" Text="Режим чтения" Foreground="#D8E8FA"/>
+            <ComboBox x:Name="ModeCombo" SelectedIndex="0">
+              <ComboBoxItem Content="Original — 64 КБ / 4 МБ / 8 МБ"/>
+              <ComboBoxItem Content="Fast — маленькие файлы первыми"/>
+              <ComboBoxItem Content="Smart — по размеру (эксперимент)"/>
+              <ComboBoxItem Content="Full — порядок файловой системы"/>
+              <ComboBoxItem Content="Match Focus — выбранные ресурсы в конце"/>
+            </ComboBox>
+            <TextBlock x:Name="BudgetLabel" Text="Лимит чтения" Foreground="#D8E8FA"/>
+            <ComboBox x:Name="BudgetCombo" SelectedIndex="0">
+              <ComboBoxItem Content="Без лимита — полное чтение" Tag="0"/>
+              <ComboBoxItem Content="2 ГБ" Tag="2"/>
+              <ComboBoxItem Content="4 ГБ" Tag="4"/>
+              <ComboBoxItem Content="8 ГБ" Tag="8"/>
+              <ComboBoxItem Content="16 ГБ" Tag="16"/>
+              <ComboBoxItem Content="32 ГБ" Tag="32"/>
+            </ComboBox>
+            <TextBlock x:Name="FocusLabel" Text="Match Focus: слова из пути (через ;)" Foreground="#D8E8FA"/>
+            <TextBox x:Name="FocusTermsBox" Text="maps;levels;de_" Margin="0,6,0,4"
+                     ToolTip="Например maps;de_mirage. Совпавшие файлы будут прочитаны ПОСЛЕДНИМИ. Это эксперимент."/>
+            <CheckBox x:Name="SkipCachesCheck" Content="Пропускать Cache, ShaderCache, Temp, Mods" IsChecked="True"/>
+            <CheckBox x:Name="WorkersCheck" Content="Два потока для мелких файлов в Original (проверить на HDD)" IsChecked="False"/>
+            <CheckBox x:Name="SequentialHintCheck" Content="Подсказка последовательного чтения Windows (эксперимент)" IsChecked="False"/>
+            <TextBlock x:Name="WarningText" Text="Только чтение файлов. Кэш Windows не гарантирует ускорение загрузки карты."
+                       Foreground="#B4D1F3" TextWrapping="Wrap" Margin="0,8,0,13"/>
+            <Border Background="#101A2D" CornerRadius="11" Padding="16" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock x:Name="ProgressLabel" Text="ПРОГРЕСС" Foreground="#90C3FF" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                <ProgressBar x:Name="ReadProgress" Minimum="0" Maximum="100" Height="13" Value="0" Foreground="#478AFF"/>
+                <TextBlock x:Name="ProgressText" Text="Готов к запуску" FontSize="15" FontWeight="SemiBold" Margin="0,10,0,9" TextWrapping="Wrap"/>
+                <TextBlock x:Name="FilesText" Text="Файлов: —" Foreground="#D1E2FA" Margin="0,0,0,5"/>
+                <TextBlock x:Name="SpeedText" Text="Скорость: —" Foreground="#D1E2FA" Margin="0,0,0,5"/>
+                <TextBlock x:Name="TimeText" Text="Прошло: —  •  Осталось: —" Foreground="#D1E2FA" Margin="0,0,0,5"/>
+                <TextBlock x:Name="ErrorsText" Text="Ошибки: 0" Foreground="#F3BEAC" Margin="0,0,0,9"/>
+                <TextBlock x:Name="FileText" Text="" Foreground="#AAC8EE" TextTrimming="CharacterEllipsis" ToolTip="Последний файл"/>
+              </StackPanel>
+            </Border>
+            <WrapPanel>
+              <Button x:Name="StartButton" Content="Начать прогрев" Click="Start_Click" Padding="17,12"/>
+              <Button x:Name="CancelButton" Content="Отменить" Click="Cancel_Click" Background="#A54059" IsEnabled="False" Padding="17,12"/>
+            </WrapPanel>
+            <TextBlock x:Name="RunHintText" Margin="0,11,0,0" Foreground="#93BAE5" TextWrapping="Wrap"
+                Text="Подсказка: для CS2 можно попробовать Match Focus, но результат зависит от файлов карты и памяти."/>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+    <TextBlock x:Name="FooterText" Grid.Row="2" Margin="0,14,0,0" Foreground="#9EBBE1" TextWrapping="Wrap"
+       Text="Без прав администратора • Не меняет игровые файлы • История: %LOCALAPPDATA%\GameWarmup\history.csv • Перед игрой дождитесь завершения"/>
+  </Grid>
+</Window>
