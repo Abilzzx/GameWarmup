@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="GameWarmup/GameWarmup.csproj" />
+  <Project Path="GameWarmup.Checks/GameWarmup.Checks.csproj" />
+</Solution>

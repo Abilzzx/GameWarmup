@@ -1,169 +1,162 @@
-# GameWarmup — экспериментальный прогрев игровых файлов для Windows
+# GameWarmup — experimental game-file warmup for Windows
 
-[English README](README.md) · **Русский**
+**English** · [Русская версия / Russian README](README.ru.md)
 
-GameWarmup — бесплатная программа с открытым исходным кодом на **C# / .NET 10 / WPF** для Windows 10/11. Перед запуском игры она **читает её файлы с диска**, давая Windows возможность сохранить часть данных в файловом кэше оперативной памяти. Программа прежде всего предназначена для экспериментов с играми на **обычных HDD**, где первое чтение данных иногда вызывает подтормаживания.
+GameWarmup is a free, open-source **C# / .NET 10 / WPF** utility for Windows 10/11. It reads files from a selected installed game **before you launch it**, giving Windows a chance to keep recently read data in its file cache. It is designed primarily for games installed on **mechanical HDDs** where first-time file access may contribute to stuttering.
 
-> **Важно:** GameWarmup не делает HDD быстрее, не гарантирует прирост FPS или ускорение загрузок и **не умеет удерживать все прочитанные данные в RAM**. Иногда прогрев займёт несколько минут без ощутимой пользы. Это **экспериментальная Alpha 0.4**, а не доказанный универсальный «ускоритель игр».
+> **Read this first:** GameWarmup does not make an HDD faster, does not guarantee any FPS or loading-time improvement, and cannot force Windows to retain all read data in RAM. It can spend minutes reading files with little or no benefit for some games. **Experimental Alpha 0.4 — not a proven optimizer for every game.**
 
-## Для чего нужна программа
+## Who is it for?
 
-У игры могут возникать короткие задержки, когда она впервые обращается к текстурам, моделям, звукам и другим данным на медленном HDD. GameWarmup пытается **перенести часть работы по чтению файлов на время до запуска игры**.
+- Players with HDD-installed games that stutter when accessing assets for the first time.
+- People who want to experiment with **before-game** file-cache warmup and compare results.
+- Developers who want to inspect, improve, or test a read-only Windows tool.
 
-Подходит для проверки гипотезы: «Будет ли меньше фризов, если предварительно прочитать игровые файлы?» Особенно актуально для HDD. На SSD/NVMe заметной пользы обычно ожидать не стоит. **Перенос игры на SSD обычно надёжнее**, чем постоянный прогрев HDD.
+If your game runs from an SSD/NVMe drive, the likely benefit is smaller. For persistent HDD streaming problems, **moving the game to SSD is more reliable** than pre-reading its files.
 
-## Как это работает — по шагам
+## What it does
 
-1. Пользователь выбирает **папку конкретной установленной игры** или находит игры через Steam.
-2. Программа обходит папки и собирает список доступных файлов. По умолчанию пропускаются папки `Cache`, `ShaderCache`, `ShaderCaches`, `Temp`, `Mods`, `__pycache__`, а также файлы-ссылки и автономные (offline) файлы.
-3. GameWarmup открывает файлы **только для чтения** (`FileAccess.Read`), последовательно читает их блоками и закрывает. **Программа не распознаёт «вот это текстура»**: изображения, архивы, 3D-модели, звуки и другие файлы для неё просто набор байтов.
-4. Windows **может** оставить часть недавно прочитанных данных в своём системном файловом кэше. Решение, **что и сколько хранить в RAM**, принимает Windows, а не GameWarmup.
-5. На экране показываются объём реально прочитанных данных, размер плана, файлы, пропуски, ошибки, скорость чтения и оставшееся время. **100% прогресса — не 100% игровых данных в RAM:** это завершение намеченной работы.
-6. После завершения прогрева пользователь **обычным способом запускает игру**. GameWarmup не вмешивается в её процесс и не запускает её сам.
+1. You choose an **individual game installation folder**, or scan Steam libraries for installed games.
+2. The tool recursively finds ordinary readable files. By default it skips folders named `Cache`, `ShaderCache`, `ShaderCaches`, `Temp`, `Mods`, and `__pycache__` (case-insensitive). It skips reparse-point links and offline files.
+3. It creates a read plan, then opens files in **read-only mode** (`FileAccess.Read`), reads byte blocks, and closes them. It **does not decode or identify textures**: archives, models, sounds, images and other files are all just bytes.
+4. Windows **may** cache some of those bytes in RAM. Windows, not GameWarmup, determines which data stays cached and how long.
+5. The UI reports scanned/planned bytes, actual bytes read, processed files, errors, recent/average read throughput, and estimated remaining time. A `100%` bar indicates **planned work completed**, not that 100% of bytes were retained in RAM.
+6. When warmup finishes, launch your game normally. The app never launches or injects into a game process.
 
-Указанная скорость — скорость чтения приложением; **это не обязательно физическая скорость HDD** и не показатель попаданий в кэш. Повторное чтение файлов может выполняться непосредственно из RAM.
+**Note:** The read throughput displayed by GameWarmup is **not a measurement of physical HDD speed or Windows cache hit rate**. It includes reads served from cache if the files were previously accessed.
 
-## Чего ожидать, а чего не ожидать
+### What to expect
 
-**Возможный эффект:** меньше кратковременных фризов при первом доступе к данным или быстрее некоторые загрузки у игр, установленных на HDD. Эффект зависит от игры, памяти, диска и порядка чтения файлов.
+- **Possible:** Fewer *first-access* pauses and shorter file-read-related loads in some HDD games.
+- **Possible:** No improvement whatsoever; Windows might evict some or all of the warmed data.
+- **Possible:** The warmup itself makes total time-to-play *longer*, even if subsequent game loading improves slightly.
+- **Not expected:** Higher GPU/CPU performance, higher sustained FPS, fixed shader compilation, reduced network matchmaking latency, extra VRAM, faster internet, or a replacement for an SSD.
+- **Not claimed:** “All game assets are loaded into RAM,” "zero stutter", or guaranteed support for a particular game.
 
-**Чего не гарантируем:** ускорение каждой игры, рост постоянного FPS, исчезновение всех фризов, сохранение десятков гигабайт в RAM, ускорение интернета, матчмейкинга, процессора или видеокарты, компиляции шейдеров, распаковки архивов и замена SSD.
+## How long will it take?
 
-**Важный минус:** прогрев тратит время **перед запуском**. Например, 12 минут ожидания ради небольшого ускорения игры могут оказаться невыгодными. Не стоит включать программу без сравнительного тестирования.
+The time depends mostly on **how much is read, the actual read throughput, number of small files, other disk activity, and HDD condition**. The initial scan also takes time.
 
-## Сколько времени займёт прогрев?
+**Approximate pure-read examples (before extra scanning/seeking overhead):**
 
-Время зависит от объёма файлов, текущей скорости HDD, количества мелких файлов, фоновой активности и состояния накопителя. Также требуется время на сканирование папок.
-
-**Приблизительное время только чтения (без дополнительных задержек):**
-
-| Объём | Средняя скорость чтения | Время |
+| Data to read | Sustained rate | Approximate read time |
 | --- | ---: | ---: |
-| 20 ГиБ | 100 МиБ/с | ~3 мин 25 сек |
-| 65 ГиБ | 90 МиБ/с | ~12 мин 20 сек |
-| 100 ГиБ | 90 МиБ/с | ~19 мин |
+| 20 GiB | 100 MiB/s | ~3 min 25 sec |
+| 65 GiB | 90 MiB/s | ~12 min 20 sec |
+| 100 GiB | 90 MiB/s | ~19 min |
 
-Расчёт: `секунды ≈ размер_ГиБ × 1024 / скорость_МиБ_с`. Реальное время может быть больше из-за перемещений головки HDD, множества мелких файлов и сканирования. Например, пользователь наблюдал **около 12 минут на ~65 ГБ** с оригинальным скриптом для Arknights: Endfield. Это **пример, а не гарантия** для каждого компьютера.
+Formula: `seconds ≈ data_size_in_GiB × 1024 / throughput_in_MiB_per_second`. The **full** warmup can take more or less than these estimates. A user observed approximately **12 minutes to read ~65 GiB** with the original Arknights: Endfield script. That is a real example, **not** a universal prediction.
 
-### Что сделать перед запуском игры
+**Before every warmup:** close the game (do not run a match during HDD reading), close unnecessary disk-intensive programs, select the right game folder and settings, click **Start warmup**, **wait until it completes**, then launch the game soon afterwards. Restarting Windows between warmup and game launch defeats the purpose of preserving the current cache. Do not claim that repeated warmup is always necessary: Windows may already have useful data cached.
 
-1. **Закрой игру** — не прогревай HDD во время матча.
-2. Закрой программы, которые активно используют тот же HDD, например распаковщики или копирование больших файлов.
-3. Открой GameWarmup, выбери нужную игру (не папку всего диска), проверь режим и лимит.
-4. Для первого теста Endfield попробуй **Original + Без лимита + 1 поток**.
-5. Нажми **«Начать прогрев»** и **дождись завершения**. Это может занять минуты или десятки минут.
-6. **Запусти игру вскоре после прогрева**, не перезагружая Windows между прогревом и игрой.
-7. Сравни загрузку и фризы с запуском **без GameWarmup** в похожих условиях.
+## Getting started on Windows 10/11
 
-Повторный прогрев не всегда нужен: Windows может и без него держать часть файлов в кэше.
-
-## Установка и запуск
-
-Требуется **Windows 10 или Windows 11**. Для запуска из исходников установи [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), распакуй исходники и открой PowerShell в корне проекта:
+You can run the source code using the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0):
 
 ```powershell
 dotnet run --project .\GameWarmup\GameWarmup.csproj
 ```
 
-1. Выбери язык **Русский / English** в правом верхнем углу. Выбор сохранится после закрытия программы.
-2. Нажми **«Найти игры Steam»** или **«Выбрать папку»**. Также можно вставить полный путь к папке игры.
-3. Выдели игру в библиотеке, выбери режим и при необходимости поставь **«Без лимита»**.
-4. Нажми **«Начать прогрев»**, после завершения запускай игру.
+1. Switch the language in the top-right corner: **Русский / English** (saved for future sessions).
+2. Click **Find Steam games** or **Choose folder**. For manually added games, choose the **game's own install directory** — never the disk root or a folder containing dozens of unrelated games.
+3. Choose **Original** and **Unlimited** for a first full warmup comparison, especially for Arknights: Endfield. By default use **one worker** on HDD.
+4. Optionally skip caches/mods; verify the installed game actually resides on an HDD.
+5. Click **Start warmup** and wait for **Finished**. The progress bar tracks the file-read plan. Launch the game normally afterwards.
+6. Compare the **same scene/map**, using tests with and without warmup. Record the time spent warming up as well as the game's load time and stutters.
 
-Пример пути Steam: `D:\SteamLibrary\steamapps\common\Arknights Endfield`. Внутри установки может быть отдельная папка `Endfield_Data` — её также можно выбрать, если именно в ней хранятся игровые данные. **Не выбирай весь диск или `steamapps\common` целиком.**
+**Example Steam folder** (your drive/path may differ): `D:\SteamLibrary\steamapps\common\Arknights Endfield`. The game's data may reside in a subfolder such as `Endfield_Data`; use the appropriate directory for that installation.
 
-## Режимы
+## Modes and settings
 
-| Режим | Принцип |
+| Mode | Behavior | Notes |
+| --- | --- | --- |
+| **Original** | Files grouped by size: `<1 MiB` with **64 KiB** chunks; `1–<10 MiB` with **4 MiB** chunks; `>=10 MiB` with **8 MiB** chunks | *Inspired by* the Endfield warmup approach. Not a byte-for-byte replica of its PowerShell code. |
+| Fast | Reads smaller files first | Experimental; may not help game startup. |
+| Smart | Groups and sorts by file size | **Simple heuristic**, not machine learning or usage tracing. |
+| Full | Uses filesystem enumeration order | No intelligent prioritization. |
+| Match Focus | Reads paths matching user keywords **last** | A filename heuristic; it cannot inspect an archive's internal assets. |
+
+- **Read limit:** Unlimited (full planned read) or 2, 4, 8, 16, 32 GiB. With a limit, the last file may be only partially read.
+- **Skip cache/mod directories:** Optional. It skips folder names, **not all files with cache-related extensions**.
+- **Two small-file workers (Original only):** Optional; may be **slower on HDD** due to extra seeks. Default is one.
+- **Windows sequential-scan hint:** Optional experiment. This changes Windows' caching/read-ahead behavior and may help or hurt this particular goal; **off by default**.
+- **Cancellation:** Stops safely between/within reads; does not modify the game.
+- **Per-run history:** `%LOCALAPPDATA%\GameWarmup\history.csv`; saved game list and language are stored locally as JSON. No telemetry or network requests are implemented.
+
+## Which games have been tested?
+
+**Do not confuse “can select a folder” with “proven to reduce stutter.”**
+
+| Game | Current evidence |
 | --- | --- |
-| **Original** | Файлы по размеру: менее 1 МиБ — блоки **64 КиБ**, от 1 до менее 10 МиБ — **4 МиБ**, от 10 МиБ — **8 МиБ**. Похож на подход оригинального Endfield-скрипта, **но не его точная копия**. |
-| **Fast** | Сначала меньшие файлы. Это не обязательно быстрее для самой игры. |
-| **Smart** | Простая сортировка по размеру. **Не нейросеть и не анализ обращений игры.** |
-| **Full** | Порядок, возвращённый файловой системой. |
-| **Match Focus** | Файлы с указанными словами в пути читаются в конце. Нельзя определить ресурсы карты, спрятанные внутри общего архива. |
+| **Arknights: Endfield** | One user reports noticeably fewer freezes after warmup with the **original Endfield PowerShell project**. GameWarmup's equivalent benefit still needs controlled tests. |
+| **Counter-Strike 2** | In a user test, ~2:00 to the main menu *without* GameWarmup versus **2:03** after `Original` and **2:03** after `Match Focus`: **no measured startup benefit**. Map-loading time has not been established. |
+| **Red Dead Redemption 2, The Last of Us Part I, Cyberpunk 2077, NTE, and others** | Files can be selected manually, but **no performance improvement has been verified**. |
 
-Дополнительные настройки:
+A game may require shader compilation, decompression, CPU processing, online authentication, matchmaking, or loading map data from generic archives. This utility does not accelerate those operations.
 
-- **Лимит чтения:** без лимита или 2, 4, 8, 16, 32 ГиБ. При лимите последний файл может быть прочитан только частично.
-- **Пропуск Cache/Mods:** можно отключить. Программа пропускает папки по названию, а не все похожие расширения файлов.
-- **2 потока для маленьких файлов:** только в режиме Original, необязательно; на HDD иногда **хуже** из-за лишних перемещений головки. По умолчанию **один**.
-- **Подсказка последовательного чтения Windows:** экспериментальная опция, по умолчанию выключена — может менять поведение кэша.
-- **Отмена:** можно безопасно прервать прогрев без изменений игровых файлов.
-- **История:** `%LOCALAPPDATA%\GameWarmup\history.csv`. Библиотека игр и язык сохраняются локально в JSON.
+## Fair benchmarking
 
-## Какие игры проверены?
+Compare runs on the **same PC, same game settings, same installed game version and same scene/map**. Record both warmup time and actual game time. Test both cold-start conditions (e.g. after a reboot) and already-cached conditions, but do not mix them within one comparison. Repeat each condition at least three times; do not treat a 2–3 second difference as conclusive when the baseline is approximate. Avoid claiming gains without measurements.
 
-**Возможность выбрать папку игры не означает, что ускорение доказано.**
+## Safety and limitations
 
-| Игра | Результат |
-| --- | --- |
-| **Arknights: Endfield** | Один пользователь сообщил, что после **оригинального PowerShell-проекта Endfield** фризов стало заметно меньше. Для GameWarmup требуется отдельная контролируемая проверка. |
-| **Counter-Strike 2** | Со слов пользователя, до главного меню **≈ 2:00 без прогрева** и **2:03 с Original / Match Focus**. Значимого ускорения пока **не обнаружено**. Время загрузки карты отдельно не установлено. |
-| **Red Dead Redemption 2, The Last of Us Part I, Cyberpunk 2077, NTE и др.** | Папки игр можно добавить, но **улучшение производительности не подтверждено**. |
+- Reads files with `FileAccess.Read`; **never writes, deletes, or patches game files**.
+- Does not inject DLLs, scan process memory, modify anti-cheat, or require administrator privileges for ordinary folders.
+- Does not force caching or lock RAM, and cannot determine cache residency or cache-hit rates.
+- Can't preselect specific resources inside monolithic game archives without format-aware development; we don't currently implement that.
+- Full scanning can saturate an HDD for minutes. Cancel if system responsiveness suffers; avoid concurrent game launches.
+- Files that are missing, inaccessible or change size can be skipped/counted as errors. `BytesRead` is actual read volume; `BytesCompleted` is completed planned work (including skipped/short files).
+- There are **no guaranteed compatibility, speed, or stutter fixes** for any game.
+- Source and GitHub workflow are provided for community testing. Unsigned community binaries may prompt Windows reputation checks; if unsure, build from source or review the repository.
 
-Если время запуска CS2 или другой игры определяется процессором, шейдерами, серверами или распаковкой, обычное чтение файлов заранее не решит проблему.
+## Build, tests, release
 
-## Как правильно сравнивать результаты
-
-Проверяй одну и ту же версию игры, настройки и карту/локацию. Отдельно измеряй **время до главного меню**, **загрузку карты** и **фризы во время игры**. Делай как минимум три попытки в каждом условии и фиксируй, был ли кэш Windows уже разогрет предыдущим запуском. Сравнивай не только время запуска игры, но и **время самого прогрева**. Пара секунд разницы при приблизительном измерении — не доказательство эффекта.
-
-## Безопасность и ограничения
-
-- Чтение только с `FileAccess.Read`: **без удаления, замены или записи игровых файлов**.
-- **Нет DLL-инъекций, изменения памяти процесса, обхода античита** или вмешательства в игру.
-- Для обычных папок не нужны права администратора.
-- Программа не загружает ничего из интернета и не отправляет телеметрию; локальные пути к играм и историю хранит на компьютере пользователя.
-- Windows может вытеснить прочитанные данные из кэша. **70 ГБ прочитанных файлов не означают 70 ГБ в RAM**.
-- При ошибках доступа или изменении файла во время чтения он может быть пропущен. Реально прочитанный объём показан отдельно от выполненного плана.
-- Полный прогрев нагружает HDD; останови его, если компьютер сильно тормозит. Не запускай игру одновременно с прогревом.
-- Изменения эффективности для отдельных игр **не гарантируются**.
-
-## Разработчикам: сборка, проверки и архитектура
-
-Проект написан на **C# + WPF (.NET 10)**. Внешних NuGet-пакетов нет. Разделение по модулям:
-
-```text
-GameWarmup/
-  MainWindow.xaml(.cs)      интерфейс и обработчики событий
-  Assets/                   иконка
-  Models/GameEntry.cs       игра, режимы и статистика
-  Services/WarmupService.cs сканирование, сортировка, чтение, отмена
-  Services/SteamScanner.cs  поиск установленных игр Steam
-  Services/I18n.cs          русский и английский язык
-  Services/SettingsStore.cs сохранение языка
-  Services/LibraryStore.cs  библиотека игр в JSON
-  Services/HistoryStore.cs  локальная история CSV
-GameWarmup.Checks/          тесты движка без дополнительных пакетов
-.github/workflows/         автоматическая сборка на Windows
-README.md                   английская документация
-README.ru.md                эта документация
-LICENSE                     лицензия MIT
-```
-
-Проверки движка (работают без установленной игры):
+Run the package-free engine smoke checks:
 
 ```powershell
 dotnet run --project .\GameWarmup.Checks\GameWarmup.Checks.csproj -c Release
 ```
 
-Сборка самостоятельного EXE для Windows x64:
+Publish a standalone Windows x64 build with the .NET runtime included:
 
 ```powershell
 dotnet publish .\GameWarmup\GameWarmup.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\publish
 ```
 
-После сборки файл будет в `publish\GameWarmup.exe`. В GitHub Actions уже есть workflow, который должен собирать проект на Windows и запускать проверки. **Успешная сборка подтверждает работоспособность кода, но не гарантирует ускорение конкретной игры.**
+The executable appears in `publish\GameWarmup.exe`. A [GitHub Actions Windows build workflow](.github/workflows/windows-build.yml) runs smoke checks and publishes an artifact on pushes and pull requests. **A green build does not prove warmup improves a game.**
 
-### Как опубликовать на GitHub
+### Project structure
 
-1. Создай публичный репозиторий, например **GameWarmup**.
-2. Загрузи **содержимое распакованной папки проекта** в корень репозитория: `GameWarmup/`, `GameWarmup.Checks/`, `.github/`, `README.md`, `README.ru.md`, `LICENSE` и `.gitignore`.
-3. **Не загружай** папки `bin/`, `obj/`, `publish/`, личные данные и файлы `%LOCALAPPDATA%`.
-4. Открой вкладку **Actions**, посмотри результат сборки. Только после успешной проверки на Windows публикуй EXE.
-5. Создай GitHub **Release** и отметь версию **Pre-release / Alpha**, чтобы пользователи понимали ограничения. Напиши, какие игры реально тестировались.
+```text
+GameWarmup/                 WPF desktop app and icon
+  MainWindow.xaml(.cs)      Interface, game selection, controls, language switch
+  Models/GameEntry.cs       Game information, read options and result models
+  Services/WarmupService.cs Read-only scan, planning, streaming and cancellation
+  Services/SteamScanner.cs  Steam installation discovery
+  Services/I18n.cs          Russian and English text
+  Services/SettingsStore.cs Language preference
+  Services/LibraryStore.cs  Local library JSON
+  Services/HistoryStore.cs  Local CSV run history
+GameWarmup.Checks/          Self-contained, package-free checks
+.github/workflows/         Windows CI build
+README.md                   English documentation
+README.ru.md                Russian documentation
+LICENSE                     MIT license
+```
 
-## Авторство и лицензия
+### Publishing to your own GitHub repository
 
-GameWarmup — **самостоятельная C#-реализация**, вдохновлённая проектом [Coco542/ZZZ-Endfield-HDD-Warmup](https://github.com/Coco542/ZZZ-Endfield-HDD-Warmup). Оригинал использует PowerShell и распространяется по MIT. GameWarmup **не включает скопированный PowerShell-код**. Спасибо Coco542 за первоначальную идею. Этот проект распространяется по [MIT](LICENSE).
+Create a public repository (suggested name: **GameWarmup**). Upload **the files inside the extracted project folder**, keeping `GameWarmup/`, `GameWarmup.Checks/`, `.github/`, both READMEs, and `LICENSE` in the repository root. Do **not** upload the `bin/`, `obj/`, `publish/` folders or personal `%LOCALAPPDATA%` files. Let GitHub Actions compile and run the checks; download its `GameWarmup-win-x64` artifact after a successful run. When ready, create a GitHub **Release**, add the artifact, and mark it **pre-release / Alpha**. Test on Windows before distributing it broadly.
 
-**Дополнительные материалы:** [Microsoft — файловый кэш Windows](https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching), [управление кэшем и памятью](https://learn.microsoft.com/en-us/windows-server/administration/performance-tuning/subsystem/cache-memory-management/).
+## Credits and license
+
+GameWarmup is an **independent** C# implementation inspired by [Coco542/ZZZ-Endfield-HDD-Warmup](https://github.com/Coco542/ZZZ-Endfield-HDD-Warmup). The original PowerShell project is licensed under MIT; GameWarmup does **not** include copied PowerShell source. Thank you to Coco542 for the original idea. GameWarmup is published under [MIT](LICENSE).
+
+### Further reading
+
+- [Microsoft: File Caching](https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching)
+- [Microsoft: Windows Cache and Memory Management](https://learn.microsoft.com/en-us/windows-server/administration/performance-tuning/subsystem/cache-memory-management/)
+- [Microsoft: file access flags and sequential hints](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)
+#   G a m e W a r m u p  
+ "# GameWarmup" 
